@@ -400,6 +400,18 @@ function App() {
                 
                 {/* 属性バー */}
                 <div style={styles.attributeRow}>
+                  <span style={styles.attrLabel}>💰 Wealth</span>
+                  <div style={styles.barContainer}>
+                    <div style={{
+                      ...styles.barFill,
+                      ...styles.barWealth,
+                      width: `${normalizeAttribute(ecoAttributes.wealth, Math.max(...Object.values(ecoAttributes) as number[]))}%`
+                    }}></div>
+                  </div>
+                  <span style={styles.attrValue}>{ecoAttributes.wealth}</span>
+                </div>
+
+                <div style={styles.attributeRow}>
                   <span style={styles.attrLabel}>⚡ Vitality</span>
                   <div style={styles.barContainer}>
                     <div style={{
@@ -462,10 +474,10 @@ function App() {
                 <div style={styles.breakdownSection}>
                   <p style={styles.breakdownTitle}>📊 Breakdown</p>
                   <p style={styles.breakdownText}>
-                    Score: V={ecoAttributes.vitality} I={ecoAttributes.intelligence} C={ecoAttributes.creativity} S={ecoAttributes.sociability}
+                    Score: W={ecoAttributes.wealth} V={ecoAttributes.vitality} I={ecoAttributes.intelligence} C={ecoAttributes.creativity} S={ecoAttributes.sociability}
                   </p>
                   <p style={styles.breakdownText}>
-                    Total: {ecoAttributes.vitality + ecoAttributes.intelligence + ecoAttributes.creativity + ecoAttributes.sociability} pts
+                    Total: {ecoAttributes.wealth + ecoAttributes.vitality + ecoAttributes.intelligence + ecoAttributes.creativity + ecoAttributes.sociability} pts
                   </p>
                 </div>
               </div>
@@ -851,6 +863,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     height: '100%',
     borderRadius: '6px',
     transition: 'width 0.5s ease-out',
+  },
+  barWealth: {
+    background: 'linear-gradient(90deg, #ffd700 0%, #ffb700 100%)',
   },
   barVitality: {
     background: 'linear-gradient(90deg, #ff6b6b 0%, #ee5a5a 100%)',

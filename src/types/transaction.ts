@@ -21,6 +21,7 @@ export interface InternalTransaction {
 
 // 生態パラメータ
 export interface EcoAttributes {
+  wealth: number;        // 資産移動
   vitality: number;      // 活発さ
   intelligence: number;  // 知性
   creativity: number;    // 表現力
@@ -28,15 +29,15 @@ export interface EcoAttributes {
 }
 
 // 種族
-export type Species = 'Baby' | 'Warrior' | 'Scholar' | 'Artist' | 'Diplomat' | 'Explorer';
+export type Species = 'Baby' | 'Merchant' | 'Warrior' | 'Scholar' | 'Artist' | 'Diplomat' | 'Explorer';
 
 // トランザクションタイプ
 export type TransactionType = 
   | 'transfer'
-  | 'execute'
-  | 'setData'
+  | 'follow'
   | 'addPermission'
-  | 'addController'
+  | 'setData'
   | 'claim'
+  | 'execute'
   | 'contract_deployment'
   | 'other';
