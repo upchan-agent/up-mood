@@ -232,6 +232,10 @@ function App() {
       
       const attrs = calculateEcoAttributes(transactions);
       console.log('[Eco] Attributes calculated:', attrs);
+      console.log('[Eco] Transaction breakdown:', transactions.map(tx => ({
+        method: tx.method,
+        type: tx.input ? (tx.input === '0x' ? 'transfer' : 'contract') : 'transfer'
+      })));
       
       const sp = getSpecies(attrs);
       console.log('[Eco] Species:', sp);
@@ -453,6 +457,17 @@ function App() {
                 <p style={styles.speciesDescription}>
                   {getSpeciesDescription(species)}
                 </p>
+
+                {/* 内訳表示（デバッグ用） */}
+                <div style={styles.breakdownSection}>
+                  <p style={styles.breakdownTitle}>📊 Breakdown</p>
+                  <p style={styles.breakdownText}>
+                    Score: V={ecoAttributes.vitality} I={ecoAttributes.intelligence} C={ecoAttributes.creativity} S={ecoAttributes.sociability}
+                  </p>
+                  <p style={styles.breakdownText}>
+                    Total: {ecoAttributes.vitality + ecoAttributes.intelligence + ecoAttributes.creativity + ecoAttributes.sociability} pts
+                  </p>
+                </div>
               </div>
             </>
           )}
@@ -888,6 +903,23 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#886677',
     textAlign: 'center',
     lineHeight: '1.5',
+  },
+  breakdownSection: {
+    marginTop: '16px',
+    padding: '12px',
+    background: '#f5f5f5',
+    borderRadius: '8px',
+    fontSize: '0.75rem',
+    color: '#666677',
+  },
+  breakdownTitle: {
+    margin: '0 0 8px 0',
+    fontWeight: '700',
+    fontSize: '0.8rem',
+  },
+  breakdownText: {
+    margin: '4px 0',
+    fontFamily: 'monospace',
   },
   resetButton: {
     padding: '8px 16px',
