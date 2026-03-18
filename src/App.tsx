@@ -49,7 +49,7 @@ const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
   vitality: 'General execute operations and contract interactions',
   intelligence: 'Complex contract executions and advanced operations',
   creativity: 'Profile metadata updates and claims (LSP-3, LSP-12)',
-  sociability: 'Follow/endorse actions and permission management (LSP-6, LSP-26)',
+  sociability: 'Follow actions and permission management (LSP-6, LSP-26)',
 };
 
 const ATTRIBUTE_ICONS: Record<string, string> = {

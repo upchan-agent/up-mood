@@ -107,8 +107,6 @@ function classifyDataPayload(dataHex: any, depth: number): TransactionType {
   }
   
   return 'execute';
-  
-  return 'execute';
 }
 
 /**
