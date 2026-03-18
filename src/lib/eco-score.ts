@@ -11,8 +11,8 @@ export function classifyTransaction(tx: Transaction): TransactionType {
     return 'contract_deployment';
   }
   
-  // 単純な LYX 送金（input が 0x のみ）
-  if (tx.input === '0x' || tx.input === '') {
+  // input が undefined または空の場合は送金として扱う
+  if (!tx.input || tx.input === '0x' || tx.input === '') {
     return 'transfer';
   }
   
