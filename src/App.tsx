@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { createClientUPProvider } from '@lukso/up-provider';
 import { request } from 'graphql-request';
+import { getTransactions, getInternalTransactions } from './lib/blockscout';
+import { calculateEcoAttributes, getSpecies, getSpeciesDescription, normalizeAttribute } from './lib/eco-score';
+import type { EcoAttributes, Species } from './lib/eco-score';
 
 const GRAPHQL_ENDPOINT = 'https://envio.lukso-mainnet.universal.tech/v1/graphql';
 
@@ -43,6 +46,8 @@ function App() {
   const [inputAddress, setInputAddress] = useState('');
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [birthday, setBirthday] = useState<BirthdayData | null>(null);
+  const [ecoAttributes, setEcoAttributes] = useState<EcoAttributes | null>(null);
+  const [species, setSpecies] = useState<Species | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -56,6 +61,7 @@ function App() {
       setAddress(addrParam.toLowerCase() as `0x${string}`);
       fetchProfile(addrParam);
       fetchBirthday(addrParam);
+      fetchEcoData(addrParam);
     }
   }, []);
 
@@ -73,6 +79,7 @@ function App() {
       setAddress(upAddress);
       fetchProfile(upAddress);
       fetchBirthday(upAddress);
+      fetchEcoData(upAddress);
     }
 
     const handleAccountsChanged = (newAccounts: string[]) => {
@@ -81,6 +88,7 @@ function App() {
         setAddress(newAccounts[0]);
         fetchProfile(newAccounts[0]);
         fetchBirthday(newAccounts[0]);
+        fetchEcoData(newAccounts[0]);
       }
     };
 
@@ -90,6 +98,7 @@ function App() {
         setAddress(newContextAccounts[0]);
         fetchProfile(newContextAccounts[0]);
         fetchBirthday(newContextAccounts[0]);
+        fetchEcoData(newContextAccounts[0]);
       }
     };
 
@@ -201,6 +210,33 @@ function App() {
     }
   };
 
+  const fetchEcoData = async (addr: string) => {
+    try {
+      const txs = await getTransactions(addr);
+      
+      // トランザクションを型変換
+      const transactions = txs.map(tx => ({
+        hash: tx.hash,
+        timestamp: tx.timestamp,
+        from: tx.from.hash,
+        to: tx.to?.hash || null,
+        value: tx.value,
+        input: tx.input,
+        method: tx.method,
+        block_number: tx.block_number,
+      }));
+      
+      const attrs = calculateEcoAttributes(transactions);
+      const sp = getSpecies(attrs);
+      
+      setEcoAttributes(attrs);
+      setSpecies(sp);
+    } catch (e: any) {
+      console.error('Eco data fetch error:', e);
+      // エラーでも続行（生態データはオプション）
+    }
+  };
+
   const handleCheck = () => {
     if (!inputAddress.startsWith('0x')) {
       setError('Please enter a valid LUKSO address (0x...)');
@@ -210,6 +246,7 @@ function App() {
     setAddress(addr);
     fetchProfile(addr);
     fetchBirthday(addr);
+    fetchEcoData(addr);
   };
 
   const handleReset = () => {
@@ -217,6 +254,8 @@ function App() {
     setInputAddress('');
     setProfile(null);
     setBirthday(null);
+    setEcoAttributes(null);
+    setSpecies(null);
     setError(null);
   };
 
@@ -233,11 +272,11 @@ function App() {
       <div style={styles.header}>
         <h1 style={styles.titleWrapper}>
           <span style={styles.emoji}>🆙</span>
-          <span style={styles.titleText}>Birthday</span>
-          <span style={styles.emoji}>🎂</span>
+          <span style={styles.titleText}>Mood</span>
+          <span style={styles.emoji}>🌱</span>
         </h1>
         <p style={styles.subtitle}>
-          Discover when your Universal Profile was born
+          Discover your Universal Profile's eco attributes and species
         </p>
       </div>
 
@@ -265,7 +304,7 @@ function App() {
       {loading && (
         <div style={styles.loadingCard}>
           <div style={styles.loadingSpinner}>🎈</div>
-          <p style={styles.loadingText}>Fetching your birthday...</p>
+          <p style={styles.loadingText}>Fetching your data...</p>
         </div>
       )}
 
@@ -339,6 +378,77 @@ function App() {
               {birthday.txHash.slice(0, 10)}...{birthday.txHash.slice(-8)}
             </a>
           </div>
+
+          {/* 生態セクション */}
+          {ecoAttributes && species && (
+            <>
+              <div style={styles.birthdayDivider}></div>
+
+              <div style={styles.ecoSection}>
+                <h2 style={styles.ecoTitle}>🌱 Eco Attributes</h2>
+                
+                {/* 属性バー */}
+                <div style={styles.attributeRow}>
+                  <span style={styles.attrLabel}>⚡ Vitality</span>
+                  <div style={styles.barContainer}>
+                    <div style={{
+                      ...styles.barFill,
+                      ...styles.barVitality,
+                      width: `${normalizeAttribute(ecoAttributes.vitality, Math.max(...Object.values(ecoAttributes)))}%`
+                    }}></div>
+                  </div>
+                  <span style={styles.attrValue}>{ecoAttributes.vitality}</span>
+                </div>
+
+                <div style={styles.attributeRow}>
+                  <span style={styles.attrLabel}>🧠 Intelligence</span>
+                  <div style={styles.barContainer}>
+                    <div style={{
+                      ...styles.barFill,
+                      ...styles.barIntelligence,
+                      width: `${normalizeAttribute(ecoAttributes.intelligence, Math.max(...Object.values(ecoAttributes)))}%`
+                    }}></div>
+                  </div>
+                  <span style={styles.attrValue}>{ecoAttributes.intelligence}</span>
+                </div>
+
+                <div style={styles.attributeRow}>
+                  <span style={styles.attrLabel}>🎨 Creativity</span>
+                  <div style={styles.barContainer}>
+                    <div style={{
+                      ...styles.barFill,
+                      ...styles.barCreativity,
+                      width: `${normalizeAttribute(ecoAttributes.creativity, Math.max(...Object.values(ecoAttributes)))}%`
+                    }}></div>
+                  </div>
+                  <span style={styles.attrValue}>{ecoAttributes.creativity}</span>
+                </div>
+
+                <div style={styles.attributeRow}>
+                  <span style={styles.attrLabel}>🤝 Sociability</span>
+                  <div style={styles.barContainer}>
+                    <div style={{
+                      ...styles.barFill,
+                      ...styles.barSociability,
+                      width: `${normalizeAttribute(ecoAttributes.sociability, Math.max(...Object.values(ecoAttributes)))}%`
+                    }}></div>
+                  </div>
+                  <span style={styles.attrValue}>{ecoAttributes.sociability}</span>
+                </div>
+
+                {/* 種族バッジ */}
+                <div style={styles.speciesBadge}>
+                  <span style={styles.speciesIcon}>🏷️</span>
+                  <span style={styles.speciesLabel}>Species:</span>
+                  <b style={styles.speciesName}>{species}</b>
+                </div>
+
+                <p style={styles.speciesDescription}>
+                  {getSpeciesDescription(species)}
+                </p>
+              </div>
+            </>
+          )}
 
           <div style={styles.shareSection}>
             <button onClick={handleShare} style={styles.shareButton}>
@@ -500,7 +610,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   errorText: {
     margin: 0,
-    flex: '1 1 auto',
+    flex: '1 auto',
     color: '#ff0055',
     fontSize: '0.95rem',
     minWidth: '200px',
@@ -557,12 +667,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '700',
     color: '#886677',
     wordBreak: 'break-word',
-  },
-  addressValue: {
-    fontSize: '0.75rem',
-    fontFamily: '"Quicksand", "Nunito", monospace',
-    color: '#886677',
-    wordBreak: 'break-all',
   },
   birthdayHeader: {
     textAlign: 'center',
@@ -688,6 +792,106 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '0.85rem',
     fontFamily: 'inherit',
     color: '#886677',
+  },
+  // 生態セクションのスタイル
+  ecoSection: {
+    marginTop: '8px',
+    paddingTop: '8px',
+  },
+  ecoTitle: {
+    margin: '0 0 16px 0',
+    fontSize: '1.2rem',
+    fontWeight: '700',
+    color: '#886677',
+    textAlign: 'center',
+  },
+  attributeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '10px 0',
+    fontSize: '0.85rem',
+  },
+  attrLabel: {
+    width: '100px',
+    fontWeight: '600',
+    color: '#886677',
+    flexShrink: 0,
+  },
+  barContainer: {
+    flex: 1,
+    height: '12px',
+    background: '#f5f5f5',
+    borderRadius: '6px',
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: '6px',
+    transition: 'width 0.5s ease-out',
+  },
+  barVitality: {
+    background: 'linear-gradient(90deg, #ff6b6b 0%, #ee5a5a 100%)',
+  },
+  barIntelligence: {
+    background: 'linear-gradient(90deg, #4ecdc4 0%, #3dbdb5 100%)',
+  },
+  barCreativity: {
+    background: 'linear-gradient(90deg, #ffe66d 0%, #ffd93d 100%)',
+  },
+  barSociability: {
+    background: 'linear-gradient(90deg, #95e1d3 0%, #7dd3c4 100%)',
+  },
+  attrValue: {
+    width: '30px',
+    textAlign: 'right',
+    fontWeight: '700',
+    color: '#333344',
+    flexShrink: 0,
+  },
+  speciesBadge: {
+    marginTop: '20px',
+    padding: '16px',
+    background: 'linear-gradient(135deg, #faf5f7 0%, #f5eef2 100%)',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    fontSize: '1rem',
+  },
+  speciesIcon: {
+    fontSize: '1.2rem',
+  },
+  speciesLabel: {
+    color: '#886677',
+    fontWeight: '600',
+  },
+  speciesName: {
+    color: '#ff6b9d',
+    fontSize: '1.1rem',
+    marginLeft: '4px',
+  },
+  speciesDescription: {
+    marginTop: '12px',
+    padding: '12px',
+    background: '#fff5f8',
+    borderRadius: '8px',
+    fontSize: '0.85rem',
+    color: '#886677',
+    textAlign: 'center',
+    lineHeight: '1.5',
+  },
+  resetButton: {
+    padding: '8px 16px',
+    fontSize: '0.85rem',
+    fontWeight: '600',
+    background: '#f78fb3',
+    border: 'none',
+    borderRadius: '8px',
+    color: '#ffffff',
+    cursor: 'pointer',
+    transition: 'opacity 0.2s',
   },
 };
 
