@@ -212,7 +212,9 @@ function App() {
 
   const fetchEcoData = async (addr: string) => {
     try {
+      console.log('[Eco] Fetching transactions for:', addr);
       const txs = await getTransactions(addr);
+      console.log('[Eco] Transactions fetched:', txs.length);
       
       // トランザクションを型変換
       const transactions = txs.map(tx => ({
@@ -226,13 +228,18 @@ function App() {
         block_number: tx.block_number,
       }));
       
+      console.log('[Eco] Sample methods:', transactions.slice(0, 5).map(tx => tx.method));
+      
       const attrs = calculateEcoAttributes(transactions);
+      console.log('[Eco] Attributes calculated:', attrs);
+      
       const sp = getSpecies(attrs);
+      console.log('[Eco] Species:', sp);
       
       setEcoAttributes(attrs);
       setSpecies(sp);
     } catch (e: any) {
-      console.error('Eco data fetch error:', e);
+      console.error('[Eco] Error:', e);
       // エラーでも続行（生態データはオプション）
     }
   };
