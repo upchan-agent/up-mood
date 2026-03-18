@@ -9,6 +9,15 @@ export interface Transaction {
   input: string;
   method?: string;
   block_number: number;
+  decoded_input?: {
+    method_call: string;
+    method_id: string;
+    parameters: Array<{
+      name: string;
+      type: string;
+      value: string;
+    }>;
+  };
 }
 
 export interface InternalTransaction {

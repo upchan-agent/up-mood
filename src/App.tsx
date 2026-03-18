@@ -223,9 +223,10 @@ function App() {
         from: tx.from.hash,
         to: tx.to?.hash || null,
         value: tx.value,
-        input: tx.raw_input,  // Blockscout API uses raw_input
+        input: tx.raw_input,
         method: tx.method,
         block_number: tx.block_number,
+        decoded_input: tx.decoded_input,
       }));
       
       console.log('[Eco] Sample methods:', transactions.slice(0, 5).map(tx => tx.method));
