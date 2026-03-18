@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { createClientUPProvider } from '@lukso/up-provider';
 import { request } from 'graphql-request';
-import { getTransactions, getInternalTransactions } from './lib/blockscout';
+import { getTransactions } from './lib/blockscout';
 import { calculateEcoAttributes, getSpecies, getSpeciesDescription, normalizeAttribute } from './lib/eco-score';
-import type { EcoAttributes, Species } from './lib/eco-score';
+import type { EcoAttributes, Species } from './types/transaction';
 
 const GRAPHQL_ENDPOINT = 'https://envio.lukso-mainnet.universal.tech/v1/graphql';
 
@@ -394,7 +394,7 @@ function App() {
                     <div style={{
                       ...styles.barFill,
                       ...styles.barVitality,
-                      width: `${normalizeAttribute(ecoAttributes.vitality, Math.max(...Object.values(ecoAttributes)))}%`
+                      width: `${normalizeAttribute(ecoAttributes.vitality, Math.max(...Object.values(ecoAttributes) as number[]))}%`
                     }}></div>
                   </div>
                   <span style={styles.attrValue}>{ecoAttributes.vitality}</span>
@@ -406,7 +406,7 @@ function App() {
                     <div style={{
                       ...styles.barFill,
                       ...styles.barIntelligence,
-                      width: `${normalizeAttribute(ecoAttributes.intelligence, Math.max(...Object.values(ecoAttributes)))}%`
+                      width: `${normalizeAttribute(ecoAttributes.intelligence, Math.max(...Object.values(ecoAttributes) as number[]))}%`
                     }}></div>
                   </div>
                   <span style={styles.attrValue}>{ecoAttributes.intelligence}</span>
@@ -418,7 +418,7 @@ function App() {
                     <div style={{
                       ...styles.barFill,
                       ...styles.barCreativity,
-                      width: `${normalizeAttribute(ecoAttributes.creativity, Math.max(...Object.values(ecoAttributes)))}%`
+                      width: `${normalizeAttribute(ecoAttributes.creativity, Math.max(...Object.values(ecoAttributes) as number[]))}%`
                     }}></div>
                   </div>
                   <span style={styles.attrValue}>{ecoAttributes.creativity}</span>
@@ -430,7 +430,7 @@ function App() {
                     <div style={{
                       ...styles.barFill,
                       ...styles.barSociability,
-                      width: `${normalizeAttribute(ecoAttributes.sociability, Math.max(...Object.values(ecoAttributes)))}%`
+                      width: `${normalizeAttribute(ecoAttributes.sociability, Math.max(...Object.values(ecoAttributes) as number[]))}%`
                     }}></div>
                   </div>
                   <span style={styles.attrValue}>{ecoAttributes.sociability}</span>
