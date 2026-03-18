@@ -97,8 +97,12 @@ export function calculateEcoAttributes(txs: Transaction[]): EcoAttributes {
     sociability: 0,
   };
   
+  // デバッグ用：分類結果をカウント
+  const typeCount: Record<string, number> = {};
+  
   for (const tx of txs) {
     const type = classifyTransaction(tx);
+    typeCount[type] = (typeCount[type] || 0) + 1;
     
     switch (type) {
       case 'transfer':
@@ -137,6 +141,8 @@ export function calculateEcoAttributes(txs: Transaction[]): EcoAttributes {
         break;
     }
   }
+  
+  console.log('[Eco] Type breakdown:', typeCount);
   
   // 整数に丸める
   return {
