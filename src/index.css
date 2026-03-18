@@ -1,0 +1,34 @@
+:root {
+  font-family: 'Quicksand', 'Nunito', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #333344;
+  background: #fce8ed;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #fce8ed;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  background: #fce8ed;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
