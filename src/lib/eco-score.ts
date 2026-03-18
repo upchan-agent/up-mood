@@ -2,6 +2,125 @@
 
 import type { Transaction, EcoAttributes, Species, TransactionType } from '../types/transaction';
 
+// LSP-26 Follower System 公式コントラクト
+const LSP26_FOLLOWER_SYSTEM = '0xf01103e5a9909fc0dbe8166da7085e0285daddca'.toLowerCase();
+
+// LSP-6 KeyManager 関連関数
+const LSP6_PERMISSION_FUNCTIONS = new Set([
+  '0x39522214', // addPermission(address,uint256)
+  '0x8b0604f8', // addController(address)
+  '0x6c056015', // removePermission(address,uint256)
+  '0x5c06c440', // removeController(address)
+]);
+
+// LSP-26 Follower System 関数
+const LSP26_FOLLOW_FUNCTIONS = new Set([
+  '0x74ee4f68', // follow(address)
+  '0x2e5dbf9f', // followBatch(address[])
+  '0x6c5a067f', // unfollow(address)
+  '0x0f457e0e', // unfollowBatch(address[])
+  '0x4dbf27cc', // endorse(address) - LSP-26 拡張
+]);
+
+// setData データキー（LSP-3 Profile）
+const LSP3_PROFILE_KEY = '0x5ef83ad9559033e6e941db7d7c495acdce616347d28e90c7ce47cbfcfcad3bc5';
+// LSP-12 Issued Assets
+const LSP12_ISSUED_ASSETS_KEY = '0x74ac75e0536d5b911f000f8755b13baf76970800000000000000000000000000';
+
+/**
+ * execute 内の関数を解析
+ */
+function classifyExecuteInput(input: string, _to?: string | null): TransactionType {
+  if (!input || input.length < 10) {
+    return 'execute';
+  }
+  
+  // execute(uint256,address,uint256,bytes) = 0x44c028fe
+  // input 構造：[selector:4][operationType:32][target:32][value:32][dataOffset:32][dataLength:32][data:...]
+  if (input.startsWith('0x44c028fe')) {
+    // target address を抽出（20-44 文字目：0x を除く 68-92 文字目）
+    const targetStart = 68;
+    const targetEnd = 132;
+    const targetHex = input.slice(targetStart, targetEnd);
+    
+    try {
+      // address 部分を取り出す（右詰めなので下位 40 文字）
+      const targetAddress = '0x' + targetHex.slice(-40).toLowerCase();
+      
+      // LSP-26 Follower System への呼び出し
+      if (targetAddress === LSP26_FOLLOWER_SYSTEM) {
+        // data 部分（calldata）を解析
+        const dataOffset = 196; // dataOffset 位置
+        if (input.length > dataOffset + 64) {
+          const dataHex = input.slice(dataOffset + 64); // data 本体
+          if (dataHex.length >= 8) {
+            const innerSelector = '0x' + dataHex.slice(0, 8);
+            if (LSP26_FOLLOW_FUNCTIONS.has(innerSelector)) {
+              return 'follow';
+            }
+          }
+        }
+        return 'follow'; // Follower System への呼び出しは全て Sociability
+      }
+    } catch (e) {
+      console.warn('Failed to parse execute target:', e);
+    }
+    
+    return 'execute';
+  }
+  
+  // 直接呼び出しの関数セレクター
+  const selector = input.slice(0, 10).toLowerCase();
+  
+  // LSP-26 直接呼び出し
+  if (LSP26_FOLLOW_FUNCTIONS.has(selector)) {
+    return 'follow';
+  }
+  
+  // LSP-6 権限関連
+  if (LSP6_PERMISSION_FUNCTIONS.has(selector)) {
+    return 'addPermission';
+  }
+  
+  // setData 系
+  if (selector === '0x7f23690c' || selector === '0x97902421') {
+    return 'setData';
+  }
+  
+  // claim
+  if (selector === '0x39560415') {
+    return 'claim';
+  }
+  
+  return 'execute';
+}
+
+/**
+ * setData のデータキーを解析
+ */
+function classifySetData(input: string): TransactionType {
+  if (!input || input.length < 74) {
+    return 'setData';
+  }
+  
+  // setData(bytes32 dataKey, bytes dataValue)
+  // dataKey は 32 bytes（64 文字）
+  const dataKeyStart = 10; // selector 後
+  const dataKey = input.slice(dataKeyStart, dataKeyStart + 64).toLowerCase();
+  
+  // LSP-3 Profile 更新 → Creativity
+  if (dataKey.startsWith(LSP3_PROFILE_KEY.slice(0, 10))) {
+    return 'setData';
+  }
+  
+  // LSP-12 Issued Assets → Sociability（他者への発行）
+  if (dataKey.startsWith(LSP12_ISSUED_ASSETS_KEY.slice(0, 10))) {
+    return 'claim';
+  }
+  
+  return 'setData';
+}
+
 /**
  * トランザクションを分類
  */
@@ -19,6 +138,11 @@ export function classifyTransaction(tx: Transaction): TransactionType {
     return 'follow';
   }
   
+  // endorse (LSP-26 拡張)
+  if (method === 'endorse' || method === 'endorsebatch') {
+    return 'follow';
+  }
+  
   // 権限・コントローラー関連 (LSP-6 KeyManager)
   if (method === 'addpermission' || method === 'addcontroller' || method === 'removepermission' || method === 'removecontroller') {
     return 'addPermission';
@@ -26,13 +150,12 @@ export function classifyTransaction(tx: Transaction): TransactionType {
   
   // setData 系 (LSP-2/3/12)
   if (method === 'setdata' || method === 'setdatabatch') {
-    return 'setData';
+    return classifySetData(tx.input);
   }
   
   // execute 系
   if (method === 'execute' || method === 'executebatch' || method === 'executerelaycall') {
-    // execute 内部の関数を解析
-    return classifyExecute(tx.input);
+    return classifyExecuteInput(tx.input, tx.to);
   }
   
   // claim (LSP-12)
@@ -40,45 +163,9 @@ export function classifyTransaction(tx: Transaction): TransactionType {
     return 'claim';
   }
   
-  // デフォルトはその他（Vitality としてカウント）
-  return 'execute';
-}
-
-/**
- * execute 内の関数を解析して分類
- */
-function classifyExecute(input: string): TransactionType {
-  if (!input || input.length < 10) {
-    return 'execute';
-  }
-  
-  const selector = input.slice(0, 10).toLowerCase();
-  
-  // follow/unfollow への execute 呼び出し
-  if (selector === '0x74ee4f68' || // follow(address)
-      selector === '0x2e5dbf9f' || // followBatch(address[])
-      selector === '0x6c5a067f' || // unfollow(address)
-      selector === '0x0f457e0e') { // unfollowBatch(address[])
-    return 'follow';
-  }
-  
-  // 権限関連
-  if (selector === '0x39522214' || // addPermission(address,uint256)
-      selector === '0x8b0604f8' || // addController(address)
-      selector === '0x6c056015' || // removePermission(address,uint256)
-      selector === '0x5c06c440') { // removeController(address)
-    return 'addPermission';
-  }
-  
-  // setData 系
-  if (selector === '0x7f23690c' || // setData(bytes32,bytes)
-      selector === '0x97902421') { // setDataBatch(bytes32[],bytes[])
+  // setDataBatch
+  if (method === 'setdatabatch') {
     return 'setData';
-  }
-  
-  // claim
-  if (selector === '0x39560415') {
-    return 'claim';
   }
   
   // デフォルトは execute（Vitality）
@@ -111,17 +198,17 @@ export function calculateEcoAttributes(txs: Transaction[]): EcoAttributes {
         break;
         
       case 'follow':
-        // Sociability: follow/unfollow
+        // Sociability: follow/unfollow/endorse (LSP-26)
         attrs.sociability += 3;
         break;
         
       case 'addPermission':
-        // Sociability: 権限付与・コントローラー追加
+        // Sociability: 権限付与・コントローラー追加 (LSP-6)
         attrs.sociability += 3;
         break;
         
       case 'setData':
-        // Creativity: メタデータ更新
+        // Creativity: メタデータ更新 (LSP-3)
         attrs.creativity += 3;
         break;
         
