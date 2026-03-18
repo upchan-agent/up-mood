@@ -2,15 +2,6 @@
 
 import type { Transaction, EcoAttributes, Species, TransactionType } from '../types/transaction';
 
-// 関数セレクター定義
-const FUNCTION_SELECTORS: Record<string, TransactionType> = {
-  '0x39d27919': 'execute',        // execute(address,uint256,bytes)
-  '0x709a2363': 'setData',        // setData(bytes32,bytes)
-  '0x39522214': 'addPermission',  // addPermission(address,uint256)
-  '0x8b0604f8': 'addController',  // addController(address)
-  '0x39560415': 'claim',          // claim(bytes32,bytes,bytes)
-};
-
 /**
  * トランザクションを分類
  */
@@ -25,8 +16,27 @@ export function classifyTransaction(tx: Transaction): TransactionType {
     return 'transfer';
   }
   
-  // 関数セレクターで分類（先頭 10 文字：0x + 8 桁）
+  // メソッド名で分類（Blockscout API がデコードした値を使用）
+  const method = (tx.method || '').toLowerCase();
+  
+  if (method === 'execute') return 'execute';
+  if (method === 'setdata') return 'setData';
+  if (method === 'addpermission') return 'addPermission';
+  if (method === 'addcontroller') return 'addController';
+  if (method === 'claim') return 'claim';
+  if (method === 'setdatabatch') return 'setData'; // setDataBatch も creativity にカウント
+  
+  // メソッド名が取得できない場合は関数セレクターでフォールバック
   const selector = tx.input.slice(0, 10).toLowerCase();
+  const FUNCTION_SELECTORS: Record<string, TransactionType> = {
+    '0x44c028fe': 'execute',        // execute(uint256,address,uint256,bytes)
+    '0x7f23690c': 'setData',        // setData(bytes32,bytes)
+    '0x97902421': 'setData',        // setDataBatch(bytes32[],bytes[])
+    '0x39522214': 'addPermission',  // addPermission(address,uint256)
+    '0x8b0604f8': 'addController',  // addController(address)
+    '0x39560415': 'claim',          // claim(bytes32,bytes,bytes)
+  };
+  
   return FUNCTION_SELECTORS[selector] || 'other';
 }
 
