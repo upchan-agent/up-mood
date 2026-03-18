@@ -50,8 +50,3 @@ body {
     transform: translateY(-5px);
   }
 }
-
-.attrBarContainer:hover .attr-tooltip {
-  opacity: 1;
-  visibility: visible;
-}

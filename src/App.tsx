@@ -34,7 +34,6 @@ interface AgeData {
   createdAt: string;
 }
 
-// 5 つの属性に合わせた種族
 const SPECIES_EMOJIS: Record<Species, string> = {
   Baby: '🐣',
   Merchant: '🦊',
@@ -45,7 +44,6 @@ const SPECIES_EMOJIS: Record<Species, string> = {
   Explorer: '🦄',
 };
 
-// 属性の説明
 const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
   wealth: 'Transactions involving LYX or token transfers',
   vitality: 'General execute operations and contract interactions',
@@ -354,40 +352,7 @@ function App() {
             </div>
           </div>
 
-          {/* Ecosystem Attributes Card */}
-          <div style={styles.ecoCard}>
-            <h3 style={styles.cardTitle}>🌱 Ecosystem Attributes</h3>
-            
-            <div style={styles.attributesGrid}>
-              {(['wealth', 'vitality', 'intelligence', 'creativity', 'sociability'] as const).map((key) => (
-                <div key={key} style={styles.attrItem}>
-                  <div style={styles.attrHeader}>
-                    <span style={styles.attrIcon}>{ATTRIBUTE_ICONS[key]}</span>
-                    <span style={styles.attrName}>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
-                  </div>
-                  <div style={styles.attrBarContainer}>
-                    <div style={styles.attrBarBg}>
-                      <div style={{
-                        ...styles.attrBarFill,
-                        ...(key === 'wealth' ? styles.barWealth : key === 'vitality' ? styles.barVitality : key === 'intelligence' ? styles.barIntelligence : key === 'creativity' ? styles.barCreativity : styles.barSociability),
-                        width: `${normalizeAttribute(ecoAttributes[key as keyof EcoAttributes], Math.max(...Object.values(ecoAttributes) as number[]))}%`
-                      }} />
-                    </div>
-                    <div className="attr-tooltip">
-                      {ATTRIBUTE_DESCRIPTIONS[key]}
-                    </div>
-                  </div>
-                  <span style={styles.attrValue}>{ecoAttributes[key as keyof EcoAttributes]}</span>
-                </div>
-              ))}
-            </div>
-
-            <div style={styles.totalScore}>
-              Total: <strong>{ecoAttributes.wealth + ecoAttributes.vitality + ecoAttributes.intelligence + ecoAttributes.creativity + ecoAttributes.sociability}</strong> points
-            </div>
-          </div>
-
-          {/* Species Card */}
+          {/* Species Card - Between Profile and Attributes */}
           <div style={styles.speciesCard}>
             <div style={styles.speciesBadge}>
               <span style={styles.speciesAnimal}>{SPECIES_EMOJIS[species]}</span>
@@ -395,6 +360,39 @@ function App() {
                 <div style={styles.speciesName}>{species}</div>
                 <p style={styles.speciesDesc}>{getSpeciesDescription(species)}</p>
               </div>
+            </div>
+          </div>
+
+          {/* Ecosystem Attributes Card */}
+          <div style={styles.ecoCard}>
+            <h3 style={styles.cardTitle}>🌱 Ecosystem Attributes</h3>
+            
+            <div style={styles.attributesGrid}>
+              {(['wealth', 'vitality', 'intelligence', 'creativity', 'sociability'] as const).map((key) => (
+                <div key={key} style={styles.attrItem}>
+                  <div style={styles.attrIconColumn}>
+                    <span style={styles.attrIcon}>{ATTRIBUTE_ICONS[key]}</span>
+                  </div>
+                  <div style={styles.attrContent}>
+                    <div style={styles.attrTop}>
+                      <span style={styles.attrName}>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                      <span style={styles.attrValue}>{ecoAttributes[key as keyof EcoAttributes]}</span>
+                    </div>
+                    <div style={styles.attrBarBg}>
+                      <div style={{
+                        ...styles.attrBarFill,
+                        ...(key === 'wealth' ? styles.barWealth : key === 'vitality' ? styles.barVitality : key === 'intelligence' ? styles.barIntelligence : key === 'creativity' ? styles.barCreativity : styles.barSociability),
+                        width: `${normalizeAttribute(ecoAttributes[key as keyof EcoAttributes], Math.max(...Object.values(ecoAttributes) as number[]))}%`
+                      }} />
+                    </div>
+                    <p style={styles.attrDesc}>{ATTRIBUTE_DESCRIPTIONS[key]}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={styles.totalScore}>
+              Total: <strong>{ecoAttributes.wealth + ecoAttributes.vitality + ecoAttributes.intelligence + ecoAttributes.creativity + ecoAttributes.sociability}</strong> points
             </div>
           </div>
 
@@ -573,6 +571,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     alignItems: 'center',
     gap: '20px',
+    justifyContent: 'center',
   },
   avatar: {
     width: '72px',
@@ -597,7 +596,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   profileText: {
     flex: 1,
     minWidth: 0,
-    textAlign: 'left',
+    textAlign: 'center',
   },
   profileName: {
     margin: '0 0 6px 0',
@@ -617,6 +616,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '10px',
     alignItems: 'center',
     fontSize: '0.85rem',
+    justifyContent: 'center',
   },
   ageItem: {
     display: 'flex',
@@ -634,91 +634,6 @@ const styles: { [key: string]: React.CSSProperties } = {
   ageSeparator: {
     color: '#cbd5e0',
   },
-  ecoCard: {
-    padding: '24px',
-    background: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: '16px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
-  },
-  cardTitle: {
-    margin: '0 0 20px 0',
-    fontSize: '1.1rem',
-    fontWeight: '700',
-    color: '#2d3748',
-    textAlign: 'center',
-  },
-  attributesGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  attrItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  attrHeader: {
-    width: '120px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    flexShrink: 0,
-  },
-  attrIcon: {
-    fontSize: '1.2rem',
-  },
-  attrName: {
-    fontSize: '0.9rem',
-    fontWeight: '600',
-    color: '#4a5568',
-  },
-  attrBarContainer: {
-    flex: 1,
-    position: 'relative',
-    cursor: 'help',
-  },
-  attrBarBg: {
-    height: '14px',
-    background: '#e2e8f0',
-    borderRadius: '7px',
-    overflow: 'hidden',
-  },
-  attrBarFill: {
-    height: '100%',
-    borderRadius: '7px',
-    transition: 'width 0.5s ease-out',
-  },
-  barWealth: {
-    background: 'linear-gradient(90deg, #f6ad55 0%, #ed8936 100%)',
-  },
-  barVitality: {
-    background: 'linear-gradient(90deg, #fc8181 0%, #f56565 100%)',
-  },
-  barIntelligence: {
-    background: 'linear-gradient(90deg, #63b3ed 0%, #4299e1 100%)',
-  },
-  barCreativity: {
-    background: 'linear-gradient(90deg, #f687b3 0%, #ed64a6 100%)',
-  },
-  barSociability: {
-    background: 'linear-gradient(90deg, #68d391 0%, #48bb78 100%)',
-  },
-  attrValue: {
-    width: '36px',
-    textAlign: 'right',
-    fontWeight: '700',
-    color: '#2d3748',
-    fontSize: '0.95rem',
-    flexShrink: 0,
-  },
-  totalScore: {
-    marginTop: '20px',
-    paddingTop: '16px',
-    borderTop: '2px dashed #e2e8f0',
-    textAlign: 'center',
-    fontSize: '1rem',
-    color: '#4a5568',
-  },
   speciesCard: {
     padding: '24px',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -730,6 +645,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     alignItems: 'center',
     gap: '16px',
+    justifyContent: 'center',
   },
   speciesAnimal: {
     fontSize: '3rem',
@@ -747,6 +663,99 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '0.9rem',
     color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: '1.5',
+  },
+  ecoCard: {
+    padding: '24px',
+    background: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: '16px',
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+  },
+  cardTitle: {
+    margin: '0 0 20px 0',
+    fontSize: '1.1rem',
+    fontWeight: '700',
+    color: '#2d3748',
+    textAlign: 'center',
+  },
+  attributesGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+  },
+  attrItem: {
+    display: 'flex',
+    gap: '16px',
+    alignItems: 'flex-start',
+  },
+  attrIconColumn: {
+    width: '40px',
+    display: 'flex',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  attrIcon: {
+    fontSize: '1.5rem',
+  },
+  attrContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  attrTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '8px',
+  },
+  attrName: {
+    fontSize: '0.95rem',
+    fontWeight: '700',
+    color: '#2d3748',
+  },
+  attrValue: {
+    fontSize: '1.1rem',
+    fontWeight: '800',
+    color: '#667eea',
+  },
+  attrBarBg: {
+    height: '12px',
+    background: '#e2e8f0',
+    borderRadius: '6px',
+    overflow: 'hidden',
+    marginBottom: '8px',
+  },
+  attrBarFill: {
+    height: '100%',
+    borderRadius: '6px',
+    transition: 'width 0.5s ease-out',
+  },
+  barWealth: {
+    background: 'linear-gradient(90deg, #f6ad55 0%, #ed8936 100%)',
+  },
+  barVitality: {
+    background: 'linear-gradient(90deg, #fc8181 0%, #f56565 100%)',
+  },
+  barIntelligence: {
+    background: 'linear-gradient(90deg, #63b3ed 0%, #4299e1 100%)',
+  },
+  barCreativity: {
+    background: 'linear-gradient(90deg, #f687b3 0%, #ed64a6 100%)',
+  },
+  barSociability: {
+    background: 'linear-gradient(90deg, #68d391 0%, #48bb78 100%)',
+  },
+  attrDesc: {
+    margin: 0,
+    fontSize: '0.8rem',
+    color: '#718096',
+    lineHeight: '1.4',
+  },
+  totalScore: {
+    marginTop: '20px',
+    paddingTop: '16px',
+    borderTop: '2px dashed #e2e8f0',
+    textAlign: 'center',
+    fontSize: '1rem',
+    color: '#4a5568',
   },
   shareButton: {
     padding: '16px 24px',
