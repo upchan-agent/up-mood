@@ -45,11 +45,11 @@ const SPECIES_EMOJIS: Record<Species, string> = {
 };
 
 const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
-  wealth: 'Transactions involving LYX or token transfers',
-  vitality: 'General execute operations and contract interactions',
-  intelligence: 'Complex contract executions and advanced operations',
-  creativity: 'Profile metadata updates and claims (LSP-3, LSP-12)',
-  sociability: 'Follow actions and permission management (LSP-6, LSP-26)',
+  wealth: 'LYX & token transfers',
+  vitality: 'Execute operations',
+  intelligence: 'Complex contracts',
+  creativity: 'Metadata & claims',
+  sociability: 'Follows & permissions',
 };
 
 const ATTRIBUTE_ICONS: Record<string, string> = {
@@ -255,16 +255,6 @@ function App() {
     fetchEcoData(addr);
   };
 
-  const handleReset = () => {
-    setAddress(null);
-    setInputAddress('');
-    setProfile(null);
-    setAge(null);
-    setEcoAttributes(null);
-    setSpecies(null);
-    setError(null);
-  };
-
   const handleShare = () => {
     const url = `${window.location.origin}/?address=${address}`;
     navigator.clipboard.writeText(url);
@@ -281,32 +271,27 @@ function App() {
           <span style={styles.titleText}>MOOD</span>
           <span style={styles.titleEmoji}>🌱</span>
         </h1>
-        <p style={styles.subtitle}>Universal Profile Ecosystem Attributes</p>
       </header>
 
-      {/* Input Card */}
-      <div style={styles.inputCard}>
-        <label style={styles.inputLabel}>Enter UP Address</label>
-        <div style={styles.inputGroup}>
-          <input
-            type="text"
-            value={inputAddress}
-            onChange={(e) => setInputAddress(e.target.value)}
-            placeholder="0xbcA4eEBea76926c49C64AB86A527CC833eFa3B2D"
-            style={styles.input}
-            onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
-          />
-          <button onClick={handleCheck} style={styles.button}>
-            Analyze
-          </button>
-        </div>
+      {/* Input */}
+      <div style={styles.inputSection}>
+        <input
+          type="text"
+          value={inputAddress}
+          onChange={(e) => setInputAddress(e.target.value)}
+          placeholder="0xbcA4eEBea76926c49C64AB86A527CC833eFa3B2D"
+          style={styles.input}
+          onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
+        />
+        <button onClick={handleCheck} style={styles.button}>
+          Analyze
+        </button>
       </div>
 
       {/* Loading */}
       {loading && (
         <div style={styles.loadingCard}>
           <div style={styles.loadingSpinner}>⌛</div>
-          <p style={styles.loadingText}>Analyzing...</p>
         </div>
       )}
 
@@ -315,14 +300,13 @@ function App() {
         <div style={styles.errorCard}>
           <span style={styles.errorIcon}>⚠️</span>
           <p style={styles.errorText}>{error}</p>
-          <button onClick={handleReset} style={styles.resetButton}>Reset</button>
         </div>
       )}
 
       {/* Results */}
       {profile && age && ecoAttributes && species && (
         <div style={styles.resultContainer}>
-          {/* Profile Card */}
+          {/* Profile - Compact */}
           <div style={styles.profileCard}>
             <div style={styles.profileContent}>
               {profile.avatarUrl ? (
@@ -334,25 +318,17 @@ function App() {
               )}
               <div style={styles.profileText}>
                 <h2 style={styles.profileName}>{profile.name}</h2>
-                <p style={styles.profileAddress}>
-                  {address?.slice(0, 6)}...{address?.slice(-4)}
-                </p>
                 <div style={styles.ageInfo}>
                   <span style={styles.ageItem}>
                     <span style={styles.ageLabel}>Age:</span>
                     <span style={styles.ageValue}>{age.years}Y {age.months}M {age.days}D</span>
-                  </span>
-                  <span style={styles.ageSeparator}>•</span>
-                  <span style={styles.ageItem}>
-                    <span style={styles.ageLabel}>Created:</span>
-                    <span style={styles.ageValue}>{age.createdAt}</span>
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Species Card - Between Profile and Attributes */}
+          {/* Species */}
           <div style={styles.speciesCard}>
             <div style={styles.speciesBadge}>
               <span style={styles.speciesAnimal}>{SPECIES_EMOJIS[species]}</span>
@@ -363,7 +339,7 @@ function App() {
             </div>
           </div>
 
-          {/* Ecosystem Attributes Card */}
+          {/* Ecosystem Attributes - Main Focus */}
           <div style={styles.ecoCard}>
             <h3 style={styles.cardTitle}>🌱 Ecosystem Attributes</h3>
             
@@ -392,13 +368,13 @@ function App() {
             </div>
 
             <div style={styles.totalScore}>
-              Total: <strong>{ecoAttributes.wealth + ecoAttributes.vitality + ecoAttributes.intelligence + ecoAttributes.creativity + ecoAttributes.sociability}</strong> points
+              Total: <strong>{ecoAttributes.wealth + ecoAttributes.vitality + ecoAttributes.intelligence + ecoAttributes.creativity + ecoAttributes.sociability}</strong> pts
             </div>
           </div>
 
           {/* Share Button */}
           <button onClick={handleShare} style={styles.shareButton}>
-            🔗 Share Profile
+            🔗 Share
           </button>
         </div>
       )}
@@ -412,29 +388,25 @@ function App() {
           <a href="https://profile.link/🆙chan@bcA4" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>
             <span style={styles.footerEmoji}>🆙</span>chan
           </a>
-          <span style={styles.footerSeparator}>|</span>
-          <a href="https://x.com/UPchan_lyx" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>
-            <span style={styles.footerX}>𝕏</span>
-          </a>
         </div>
       </footer>
 
       {/* Toast */}
       {copied && (
         <div style={styles.toast}>
-          <span>✅ Link copied!</span>
+          <span>✅ Copied!</span>
         </div>
       )}
     </div>
   );
 }
 
-// 🎨 Modern purple gradient theme
+// 🎨 Compact, Grid-optimized design
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
     minHeight: '100vh',
     width: '100%',
-    padding: '24px 16px',
+    padding: '16px 12px',
     fontFamily: '"Quicksand", "Nunito", system-ui, sans-serif',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     color: '#1a202c',
@@ -442,11 +414,11 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   header: {
     textAlign: 'center',
-    marginBottom: '32px',
+    marginBottom: '16px',
   },
   title: {
-    margin: '0 0 8px 0',
-    fontSize: 'clamp(2rem, 5vw, 2.5rem)',
+    margin: 0,
+    fontSize: 'clamp(1.5rem, 4vw, 2rem)',
     fontWeight: '800',
     letterSpacing: '-0.02em',
     display: 'inline-block',
@@ -454,7 +426,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   titleEmoji: {
     fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif',
     fontVariantEmoji: 'emoji',
-    margin: '0 10px',
+    margin: '0 8px',
   },
   titleText: {
     background: 'linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%)',
@@ -463,132 +435,97 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundClip: 'text',
     letterSpacing: '0.1em',
   },
-  subtitle: {
-    margin: 0,
-    fontSize: '0.95rem',
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontWeight: '500',
-  },
-  inputCard: {
-    maxWidth: '560px',
-    margin: '0 auto 24px',
-    padding: '24px',
-    background: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: '16px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-    width: '100%',
-    boxSizing: 'border-box',
-  },
-  inputLabel: {
-    display: 'block',
-    margin: '0 0 12px 0',
-    fontSize: '0.85rem',
-    fontWeight: '700',
-    color: '#4a5568',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  },
-  inputGroup: {
+  inputSection: {
+    maxWidth: '400px',
+    margin: '0 auto 16px',
     display: 'flex',
-    gap: '12px',
+    gap: '8px',
   },
   input: {
     flex: 1,
-    padding: '14px 16px',
-    fontSize: '0.95rem',
+    padding: '10px 12px',
+    fontSize: '0.85rem',
     fontFamily: 'inherit',
-    background: '#f7fafc',
-    border: '2px solid #e2e8f0',
-    borderRadius: '10px',
+    background: 'rgba(255, 255, 255, 0.95)',
+    border: '2px solid rgba(255, 255, 255, 0.3)',
+    borderRadius: '8px',
     color: '#2d3748',
     outline: 'none',
-    transition: 'border-color 0.2s',
   },
   button: {
-    padding: '14px 28px',
-    fontSize: '0.95rem',
+    padding: '10px 20px',
+    fontSize: '0.85rem',
     fontWeight: '700',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    background: 'rgba(255, 255, 255, 0.95)',
     border: 'none',
-    borderRadius: '10px',
-    color: '#ffffff',
+    borderRadius: '8px',
+    color: '#667eea',
     cursor: 'pointer',
-    transition: 'transform 0.2s, box-shadow 0.2s',
     whiteSpace: 'nowrap',
   },
   loadingCard: {
     maxWidth: '400px',
-    margin: '0 auto 24px',
-    padding: '40px 24px',
+    margin: '0 auto 16px',
+    padding: '24px',
     background: 'rgba(255, 255, 255, 0.95)',
     borderRadius: '16px',
     textAlign: 'center',
   },
   loadingSpinner: {
-    fontSize: '3rem',
-    marginBottom: '16px',
-  },
-  loadingText: {
-    margin: 0,
-    color: '#4a5568',
-    fontSize: '1.1rem',
-    fontWeight: '600',
+    fontSize: '2rem',
   },
   errorCard: {
-    maxWidth: '500px',
-    margin: '0 auto 24px',
-    padding: '20px 24px',
+    maxWidth: '400px',
+    margin: '0 auto 16px',
+    padding: '12px 16px',
     background: '#fff5f5',
-    borderRadius: '16px',
+    borderRadius: '12px',
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-    flexWrap: 'wrap',
+    gap: '8px',
   },
   errorIcon: {
-    fontSize: '1.5rem',
+    fontSize: '1.2rem',
   },
   errorText: {
     margin: 0,
     flex: '1 1 auto',
     color: '#e53e3e',
-    fontSize: '0.95rem',
+    fontSize: '0.85rem',
   },
   resultContainer: {
-    maxWidth: '560px',
+    maxWidth: '400px',
     margin: '0 auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
+    gap: '12px',
   },
   profileCard: {
-    padding: '24px',
+    padding: '16px',
     background: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: '16px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+    borderRadius: '12px',
   },
   profileContent: {
     display: 'flex',
     alignItems: 'center',
-    gap: '20px',
-    justifyContent: 'center',
+    gap: '12px',
   },
   avatar: {
-    width: '72px',
-    height: '72px',
+    width: '48px',
+    height: '48px',
     borderRadius: '50%',
     objectFit: 'cover',
     flexShrink: 0,
   },
   avatarPlaceholder: {
-    width: '72px',
-    height: '72px',
+    width: '48px',
+    height: '48px',
     borderRadius: '50%',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '2rem',
+    fontSize: '1.5rem',
     fontWeight: 'bold',
     color: '#ffffff',
     flexShrink: 0,
@@ -596,31 +533,23 @@ const styles: { [key: string]: React.CSSProperties } = {
   profileText: {
     flex: 1,
     minWidth: 0,
-    textAlign: 'center',
   },
   profileName: {
-    margin: '0 0 6px 0',
-    fontSize: '1.35rem',
+    margin: '0 0 4px 0',
+    fontSize: '1.1rem',
     fontWeight: '700',
     color: '#2d3748',
-  },
-  profileAddress: {
-    margin: '0 0 10px 0',
-    fontSize: '0.85rem',
-    color: '#718096',
-    fontFamily: 'monospace',
   },
   ageInfo: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: '10px',
+    gap: '8px',
     alignItems: 'center',
-    fontSize: '0.85rem',
-    justifyContent: 'center',
+    fontSize: '0.75rem',
   },
   ageItem: {
     display: 'flex',
-    gap: '6px',
+    gap: '4px',
     alignItems: 'center',
   },
   ageLabel: {
@@ -631,48 +560,41 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#2d3748',
     fontWeight: '600',
   },
-  ageSeparator: {
-    color: '#cbd5e0',
-  },
   speciesCard: {
-    padding: '24px',
+    padding: '16px',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    borderRadius: '16px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+    borderRadius: '12px',
     animation: 'pulse 2s ease-in-out infinite',
   },
   speciesBadge: {
     display: 'flex',
     alignItems: 'center',
-    gap: '16px',
-    justifyContent: 'center',
+    gap: '12px',
   },
   speciesAnimal: {
-    fontSize: '3rem',
+    fontSize: '2.5rem',
     animation: 'bounce 1s ease-in-out infinite',
   },
   speciesName: {
-    margin: '0 0 4px 0',
-    fontSize: '1.5rem',
+    margin: '0 0 2px 0',
+    fontSize: '1.25rem',
     fontWeight: '800',
     color: '#ffffff',
-    letterSpacing: '0.05em',
   },
   speciesDesc: {
     margin: 0,
-    fontSize: '0.9rem',
+    fontSize: '0.8rem',
     color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: '1.5',
+    lineHeight: '1.3',
   },
   ecoCard: {
-    padding: '24px',
+    padding: '16px',
     background: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: '16px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+    borderRadius: '12px',
   },
   cardTitle: {
-    margin: '0 0 20px 0',
-    fontSize: '1.1rem',
+    margin: '0 0 16px 0',
+    fontSize: '1rem',
     fontWeight: '700',
     color: '#2d3748',
     textAlign: 'center',
@@ -680,21 +602,21 @@ const styles: { [key: string]: React.CSSProperties } = {
   attributesGrid: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '14px',
   },
   attrItem: {
     display: 'flex',
-    gap: '16px',
+    gap: '12px',
     alignItems: 'flex-start',
   },
   attrIconColumn: {
-    width: '40px',
+    width: '32px',
     display: 'flex',
     justifyContent: 'center',
     flexShrink: 0,
   },
   attrIcon: {
-    fontSize: '1.5rem',
+    fontSize: '1.2rem',
   },
   attrContent: {
     flex: 1,
@@ -704,28 +626,28 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '8px',
+    marginBottom: '6px',
   },
   attrName: {
-    fontSize: '0.95rem',
+    fontSize: '0.85rem',
     fontWeight: '700',
     color: '#2d3748',
   },
   attrValue: {
-    fontSize: '1.1rem',
+    fontSize: '1rem',
     fontWeight: '800',
     color: '#667eea',
   },
   attrBarBg: {
-    height: '12px',
+    height: '10px',
     background: '#e2e8f0',
-    borderRadius: '6px',
+    borderRadius: '5px',
     overflow: 'hidden',
-    marginBottom: '8px',
+    marginBottom: '6px',
   },
   attrBarFill: {
     height: '100%',
-    borderRadius: '6px',
+    borderRadius: '5px',
     transition: 'width 0.5s ease-out',
   },
   barWealth: {
@@ -745,32 +667,31 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   attrDesc: {
     margin: 0,
-    fontSize: '0.8rem',
+    fontSize: '0.7rem',
     color: '#718096',
-    lineHeight: '1.4',
+    lineHeight: '1.3',
   },
   totalScore: {
-    marginTop: '20px',
-    paddingTop: '16px',
+    marginTop: '16px',
+    paddingTop: '12px',
     borderTop: '2px dashed #e2e8f0',
     textAlign: 'center',
-    fontSize: '1rem',
+    fontSize: '0.9rem',
     color: '#4a5568',
   },
   shareButton: {
-    padding: '16px 24px',
-    fontSize: '1rem',
+    padding: '12px 20px',
+    fontSize: '0.9rem',
     fontWeight: '700',
     background: 'rgba(255, 255, 255, 0.95)',
     border: 'none',
-    borderRadius: '12px',
+    borderRadius: '10px',
     color: '#667eea',
     cursor: 'pointer',
-    transition: 'transform 0.2s, box-shadow 0.2s',
   },
   footer: {
-    marginTop: '40px',
-    paddingTop: '24px',
+    marginTop: '24px',
+    paddingTop: '16px',
     borderTop: '1px solid rgba(255, 255, 255, 0.2)',
     textAlign: 'center',
   },
@@ -782,11 +703,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexWrap: 'wrap',
   },
   footerText: {
-    fontSize: '0.85rem',
+    fontSize: '0.75rem',
     color: 'rgba(255, 255, 255, 0.85)',
   },
   footerHeart: {
-    fontSize: '0.85rem',
+    fontSize: '0.75rem',
   },
   footerEmoji: {
     fontSize: '1rem',
@@ -799,41 +720,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '4px',
     color: 'rgba(255, 255, 255, 0.85)',
     textDecoration: 'none',
-    fontSize: '0.85rem',
+    fontSize: '0.75rem',
     fontWeight: '600',
-    transition: 'opacity 0.2s',
-  },
-  footerSeparator: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: '0.85rem',
-  },
-  footerX: {
-    fontSize: '0.85rem',
-    fontFamily: 'inherit',
   },
   toast: {
     position: 'fixed',
-    bottom: '32px',
+    bottom: '24px',
     left: '50%',
     transform: 'translateX(-50%)',
-    padding: '14px 28px',
+    padding: '12px 20px',
     background: '#ffffff',
-    borderRadius: '12px',
-    fontSize: '0.95rem',
+    borderRadius: '10px',
+    fontSize: '0.85rem',
     color: '#2d3748',
     fontWeight: '600',
     boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
     zIndex: 1000,
-  },
-  resetButton: {
-    padding: '10px 20px',
-    fontSize: '0.9rem',
-    fontWeight: '600',
-    background: '#f56565',
-    border: 'none',
-    borderRadius: '8px',
-    color: '#ffffff',
-    cursor: 'pointer',
   },
 };
 
