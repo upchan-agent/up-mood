@@ -43,6 +43,7 @@ export type Species = 'Baby' | 'Merchant' | 'Warrior' | 'Scholar' | 'Artist' | '
 // トランザクションタイプ
 export type TransactionType = 
   | 'transfer'
+  | 'tokenTransfer'
   | 'follow'
   | 'addPermission'
   | 'setData'

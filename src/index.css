@@ -32,3 +32,26 @@ body {
     transform: translateX(-50%) translateY(0);
   }
 }
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.attrBarContainer:hover .attr-tooltip {
+  opacity: 1;
+  visibility: visible;
+}

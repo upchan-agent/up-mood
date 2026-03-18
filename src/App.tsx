@@ -27,32 +27,52 @@ interface ProfileData {
   avatarUrl?: string;
 }
 
-interface BirthdayData {
-  timestamp: string;
-  utc: string;
-  local: string;
-  txHash: string;
-  txUrl: string;
-  age: {
-    years: number;
-    months: number;
-    days: number;
-    elapsedDays: number;
-  };
+interface AgeData {
+  years: number;
+  months: number;
+  days: number;
+  createdAt: string;
 }
+
+// 5 つの属性に合わせた種族
+const SPECIES_EMOJIS: Record<Species, string> = {
+  Baby: '🐣',
+  Merchant: '🦊',
+  Warrior: '🦁',
+  Scholar: '🦉',
+  Artist: '🦋',
+  Diplomat: '🕊️',
+  Explorer: '🦄',
+};
+
+// 属性の説明
+const ATTRIBUTE_DESCRIPTIONS: Record<string, string> = {
+  wealth: 'Transactions involving LYX or token transfers',
+  vitality: 'General execute operations and contract interactions',
+  intelligence: 'Complex contract executions and advanced operations',
+  creativity: 'Profile metadata updates and claims (LSP-3, LSP-12)',
+  sociability: 'Follow/endorse actions and permission management (LSP-6, LSP-26)',
+};
+
+const ATTRIBUTE_ICONS: Record<string, string> = {
+  wealth: '💰',
+  vitality: '⚡',
+  intelligence: '🧠',
+  creativity: '🎨',
+  sociability: '🤝',
+};
 
 function App() {
   const [address, setAddress] = useState<string | null>(null);
   const [inputAddress, setInputAddress] = useState('');
   const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [birthday, setBirthday] = useState<BirthdayData | null>(null);
+  const [age, setAge] = useState<AgeData | null>(null);
   const [ecoAttributes, setEcoAttributes] = useState<EcoAttributes | null>(null);
   const [species, setSpecies] = useState<Species | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // URL パラメータからアドレスを取得
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const addrParam = params.get('address');
@@ -60,25 +80,22 @@ function App() {
       setInputAddress(addrParam);
       setAddress(addrParam.toLowerCase() as `0x${string}`);
       fetchProfile(addrParam);
-      fetchBirthday(addrParam);
+      fetchAge(addrParam);
       fetchEcoData(addrParam);
     }
   }, []);
 
-  // Grid 経由の接続を監視
   useEffect(() => {
     const provider = createClientUPProvider();
-
     const accounts = provider.accounts as string[];
     const contextAccounts = provider.contextAccounts as string[];
-
     const upAddress = contextAccounts.length > 0 ? contextAccounts[0] : accounts[0];
 
     if (upAddress && !address) {
       setInputAddress(upAddress);
       setAddress(upAddress);
       fetchProfile(upAddress);
-      fetchBirthday(upAddress);
+      fetchAge(upAddress);
       fetchEcoData(upAddress);
     }
 
@@ -87,7 +104,7 @@ function App() {
         setInputAddress(newAccounts[0]);
         setAddress(newAccounts[0]);
         fetchProfile(newAccounts[0]);
-        fetchBirthday(newAccounts[0]);
+        fetchAge(newAccounts[0]);
         fetchEcoData(newAccounts[0]);
       }
     };
@@ -97,7 +114,7 @@ function App() {
         setInputAddress(newContextAccounts[0]);
         setAddress(newContextAccounts[0]);
         fetchProfile(newContextAccounts[0]);
-        fetchBirthday(newContextAccounts[0]);
+        fetchAge(newContextAccounts[0]);
         fetchEcoData(newContextAccounts[0]);
       }
     };
@@ -116,7 +133,6 @@ function App() {
     setError(null);
     try {
       const data = await request(GRAPHQL_ENDPOINT, GET_PROFILE_QUERY, { address: addr.toLowerCase() });
-      
       const profileData = data.Profile?.[0];
 
       if (!profileData) {
@@ -124,7 +140,6 @@ function App() {
         return;
       }
 
-      // 画像の選択：最小サイズ（アイコン用）
       const images = profileData.profileImages || [];
       let avatarUrl: string | undefined;
       
@@ -132,7 +147,6 @@ function App() {
         const sorted = [...images].sort((a, b) => (a.width || 0) - (b.width || 0));
         const rawUrl = sorted[0].url;
         
-        // IPFS URL をゲートウェイ URL に変換
         if (rawUrl?.startsWith('ipfs://')) {
           avatarUrl = 'https://api.universalprofile.cloud/ipfs/' + rawUrl.replace('ipfs://', '');
         } else if (rawUrl?.startsWith('https://') || rawUrl?.startsWith('http://')) {
@@ -154,7 +168,6 @@ function App() {
     }
   };
 
-  // Calculate age from birth date
   function calculateAge(birthDate: Date) {
     const now = new Date();
     const birth = birthDate;
@@ -172,12 +185,15 @@ function App() {
       months += 12;
     }
     
-    const elapsedDays = Math.floor((now.getTime() - birth.getTime()) / (1000 * 60 * 60 * 24));
-    
-    return { years, months, days, elapsedDays };
+    return { 
+      years, 
+      months, 
+      days,
+      createdAt: birth.toUTCString().split(' ').slice(0, 4).join(' '),
+    };
   }
 
-  const fetchBirthday = async (addr: string) => {
+  const fetchAge = async (addr: string) => {
     try {
       const addrRes = await fetch(
         `https://explorer.execution.mainnet.lukso.network/api/v2/addresses/${addr}`
@@ -195,16 +211,9 @@ function App() {
       const txData = await txRes.json();
 
       const createdAt = new Date(txData.timestamp);
-      const age = calculateAge(createdAt);
+      const ageData = calculateAge(createdAt);
 
-      setBirthday({
-        timestamp: txData.timestamp,
-        utc: createdAt.toUTCString(),
-        local: createdAt.toLocaleString(),
-        txHash,
-        txUrl: `https://explorer.execution.mainnet.lukso.network/tx/${txHash}`,
-        age,
-      });
+      setAge(ageData);
     } catch (e: any) {
       setError(e.message || 'Unknown error');
     }
@@ -212,11 +221,8 @@ function App() {
 
   const fetchEcoData = async (addr: string) => {
     try {
-      console.log('[Eco] Fetching transactions for:', addr);
       const txs = await getTransactions(addr);
-      console.log('[Eco] Transactions fetched:', txs.length);
       
-      // トランザクションを型変換
       const transactions = txs.map(tx => ({
         hash: tx.hash,
         timestamp: tx.timestamp,
@@ -229,23 +235,13 @@ function App() {
         decoded_input: tx.decoded_input,
       }));
       
-      console.log('[Eco] Sample methods:', transactions.slice(0, 5).map(tx => tx.method));
-      
       const attrs = calculateEcoAttributes(transactions);
-      console.log('[Eco] Attributes calculated:', attrs);
-      console.log('[Eco] Sample inputs:', transactions.slice(0, 3).map(tx => ({
-        method: tx.method,
-        inputLen: tx.input?.length || 0
-      })));
-      
       const sp = getSpecies(attrs);
-      console.log('[Eco] Species:', sp);
       
       setEcoAttributes(attrs);
       setSpecies(sp);
     } catch (e: any) {
       console.error('[Eco] Error:', e);
-      // エラーでも続行（生態データはオプション）
     }
   };
 
@@ -257,7 +253,7 @@ function App() {
     const addr = inputAddress.toLowerCase();
     setAddress(addr);
     fetchProfile(addr);
-    fetchBirthday(addr);
+    fetchAge(addr);
     fetchEcoData(addr);
   };
 
@@ -265,7 +261,7 @@ function App() {
     setAddress(null);
     setInputAddress('');
     setProfile(null);
-    setBirthday(null);
+    setAge(null);
     setEcoAttributes(null);
     setSpecies(null);
     setError(null);
@@ -280,23 +276,19 @@ function App() {
 
   return (
     <div style={styles.container}>
-      {/* ヘッダー */}
-      <div style={styles.header}>
-        <h1 style={styles.titleWrapper}>
-          <span style={styles.emoji}>🆙</span>
-          <span style={styles.titleText}>Mood</span>
-          <span style={styles.emoji}>🌱</span>
+      {/* Header */}
+      <header style={styles.header}>
+        <h1 style={styles.title}>
+          <span style={styles.titleEmoji}>🆙</span>
+          <span style={styles.titleText}>MOOD</span>
+          <span style={styles.titleEmoji}>🌱</span>
         </h1>
-        <p style={styles.subtitle}>
-          Discover your Universal Profile's eco attributes and species
-        </p>
-      </div>
+        <p style={styles.subtitle}>Universal Profile Ecosystem Attributes</p>
+      </header>
 
-      {/* アドレス入力フォーム（常に表示） */}
-      <div style={styles.inputSection}>
-        <p style={styles.inputLabel}>
-          Auto-detected via Grid or enter manually
-        </p>
+      {/* Input Card */}
+      <div style={styles.inputCard}>
+        <label style={styles.inputLabel}>Enter UP Address</label>
         <div style={styles.inputGroup}>
           <input
             type="text"
@@ -307,203 +299,115 @@ function App() {
             onKeyDown={(e) => e.key === 'Enter' && handleCheck()}
           />
           <button onClick={handleCheck} style={styles.button}>
-            Check
+            Analyze
           </button>
         </div>
       </div>
 
-      {/* ローディング */}
+      {/* Loading */}
       {loading && (
         <div style={styles.loadingCard}>
-          <div style={styles.loadingSpinner}>🎈</div>
-          <p style={styles.loadingText}>Fetching your data...</p>
+          <div style={styles.loadingSpinner}>⌛</div>
+          <p style={styles.loadingText}>Analyzing...</p>
         </div>
       )}
 
-      {/* エラー */}
+      {/* Error */}
       {error && (
         <div style={styles.errorCard}>
           <span style={styles.errorIcon}>⚠️</span>
           <p style={styles.errorText}>{error}</p>
-          <button onClick={handleReset} style={styles.resetButton}>
-            Reset
+          <button onClick={handleReset} style={styles.resetButton}>Reset</button>
+        </div>
+      )}
+
+      {/* Results */}
+      {profile && age && ecoAttributes && species && (
+        <div style={styles.resultContainer}>
+          {/* Profile Card */}
+          <div style={styles.profileCard}>
+            <div style={styles.profileContent}>
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt={profile.name} style={styles.avatar} />
+              ) : (
+                <div style={styles.avatarPlaceholder}>
+                  {profile.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div style={styles.profileText}>
+                <h2 style={styles.profileName}>{profile.name}</h2>
+                <p style={styles.profileAddress}>
+                  {address?.slice(0, 6)}...{address?.slice(-4)}
+                </p>
+                <div style={styles.ageInfo}>
+                  <span style={styles.ageItem}>
+                    <span style={styles.ageLabel}>Age:</span>
+                    <span style={styles.ageValue}>{age.years}Y {age.months}M {age.days}D</span>
+                  </span>
+                  <span style={styles.ageSeparator}>•</span>
+                  <span style={styles.ageItem}>
+                    <span style={styles.ageLabel}>Created:</span>
+                    <span style={styles.ageValue}>{age.createdAt}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Ecosystem Attributes Card */}
+          <div style={styles.ecoCard}>
+            <h3 style={styles.cardTitle}>🌱 Ecosystem Attributes</h3>
+            
+            <div style={styles.attributesGrid}>
+              {(['wealth', 'vitality', 'intelligence', 'creativity', 'sociability'] as const).map((key) => (
+                <div key={key} style={styles.attrItem}>
+                  <div style={styles.attrHeader}>
+                    <span style={styles.attrIcon}>{ATTRIBUTE_ICONS[key]}</span>
+                    <span style={styles.attrName}>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                  </div>
+                  <div style={styles.attrBarContainer}>
+                    <div style={styles.attrBarBg}>
+                      <div style={{
+                        ...styles.attrBarFill,
+                        ...(key === 'wealth' ? styles.barWealth : key === 'vitality' ? styles.barVitality : key === 'intelligence' ? styles.barIntelligence : key === 'creativity' ? styles.barCreativity : styles.barSociability),
+                        width: `${normalizeAttribute(ecoAttributes[key as keyof EcoAttributes], Math.max(...Object.values(ecoAttributes) as number[]))}%`
+                      }} />
+                    </div>
+                    <div className="attr-tooltip">
+                      {ATTRIBUTE_DESCRIPTIONS[key]}
+                    </div>
+                  </div>
+                  <span style={styles.attrValue}>{ecoAttributes[key as keyof EcoAttributes]}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={styles.totalScore}>
+              Total: <strong>{ecoAttributes.wealth + ecoAttributes.vitality + ecoAttributes.intelligence + ecoAttributes.creativity + ecoAttributes.sociability}</strong> points
+            </div>
+          </div>
+
+          {/* Species Card */}
+          <div style={styles.speciesCard}>
+            <div style={styles.speciesBadge}>
+              <span style={styles.speciesAnimal}>{SPECIES_EMOJIS[species]}</span>
+              <div>
+                <div style={styles.speciesName}>{species}</div>
+                <p style={styles.speciesDesc}>{getSpeciesDescription(species)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Share Button */}
+          <button onClick={handleShare} style={styles.shareButton}>
+            🔗 Share Profile
           </button>
         </div>
       )}
 
-      {/* プロフィールと誕生日情報（1 つのカードに統合） */}
-      {profile && birthday && (
-        <div style={styles.resultCard}>
-          <div style={styles.profileHeader}>
-            {profile.avatarUrl ? (
-              <img
-                src={profile.avatarUrl}
-                alt={profile.name}
-                style={styles.avatar}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            ) : (
-              <div style={styles.avatarPlaceholder}>
-                {profile.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div style={styles.profileInfo}>
-              <div style={styles.profileName}>{profile.name}</div>
-            </div>
-          </div>
-
-          <div style={styles.birthdayDivider}></div>
-
-          <div style={styles.birthdayHeader}>
-            <p style={styles.birthdaySubtitle}>
-              <span style={styles.birthdayCake}>🎂</span> Your Universal Profile was born on ✨
-            </p>
-          </div>
-
-          <div style={styles.birthdayItem}>
-            <span style={styles.birthdayLabel}>🎉 UTC</span>
-            <b style={styles.birthdayValue}>{birthday.utc}</b>
-          </div>
-
-          <div style={styles.birthdayItem}>
-            <span style={styles.birthdayLabel}>🕐 Local</span>
-            <b style={styles.birthdayValue}>{birthday.local}</b>
-          </div>
-
-          <div style={styles.birthdayItem}>
-            <span style={styles.birthdayLabel}>🎂 Age</span>
-            <b style={styles.birthdayValue}>
-              {birthday.age.years} Y {birthday.age.months} M {birthday.age.days} D ( {birthday.age.elapsedDays} days )
-            </b>
-          </div>
-
-          <div style={styles.birthdayItem}>
-            <span style={styles.birthdayLabel}>📝 Transaction</span>
-            <a
-              href={birthday.txUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={styles.txLink}
-            >
-              {birthday.txHash.slice(0, 10)}...{birthday.txHash.slice(-8)}
-            </a>
-          </div>
-
-          {/* 生態セクション */}
-          {ecoAttributes && species && (
-            <>
-              <div style={styles.birthdayDivider}></div>
-
-              <div style={styles.ecoSection}>
-                <h2 style={styles.ecoTitle}>🌱 Eco Attributes</h2>
-                
-                {/* 属性バー */}
-                <div style={styles.attributeRow}>
-                  <span style={styles.attrLabel}>💰 Wealth</span>
-                  <div style={styles.barContainer}>
-                    <div style={{
-                      ...styles.barFill,
-                      ...styles.barWealth,
-                      width: `${normalizeAttribute(ecoAttributes.wealth, Math.max(...Object.values(ecoAttributes) as number[]))}%`
-                    }}></div>
-                  </div>
-                  <span style={styles.attrValue}>{ecoAttributes.wealth}</span>
-                </div>
-
-                <div style={styles.attributeRow}>
-                  <span style={styles.attrLabel}>⚡ Vitality</span>
-                  <div style={styles.barContainer}>
-                    <div style={{
-                      ...styles.barFill,
-                      ...styles.barVitality,
-                      width: `${normalizeAttribute(ecoAttributes.vitality, Math.max(...Object.values(ecoAttributes) as number[]))}%`
-                    }}></div>
-                  </div>
-                  <span style={styles.attrValue}>{ecoAttributes.vitality}</span>
-                </div>
-
-                <div style={styles.attributeRow}>
-                  <span style={styles.attrLabel}>🧠 Intelligence</span>
-                  <div style={styles.barContainer}>
-                    <div style={{
-                      ...styles.barFill,
-                      ...styles.barIntelligence,
-                      width: `${normalizeAttribute(ecoAttributes.intelligence, Math.max(...Object.values(ecoAttributes) as number[]))}%`
-                    }}></div>
-                  </div>
-                  <span style={styles.attrValue}>{ecoAttributes.intelligence}</span>
-                </div>
-
-                <div style={styles.attributeRow}>
-                  <span style={styles.attrLabel}>🎨 Creativity</span>
-                  <div style={styles.barContainer}>
-                    <div style={{
-                      ...styles.barFill,
-                      ...styles.barCreativity,
-                      width: `${normalizeAttribute(ecoAttributes.creativity, Math.max(...Object.values(ecoAttributes) as number[]))}%`
-                    }}></div>
-                  </div>
-                  <span style={styles.attrValue}>{ecoAttributes.creativity}</span>
-                </div>
-
-                <div style={styles.attributeRow}>
-                  <span style={styles.attrLabel}>🤝 Sociability</span>
-                  <div style={styles.barContainer}>
-                    <div style={{
-                      ...styles.barFill,
-                      ...styles.barSociability,
-                      width: `${normalizeAttribute(ecoAttributes.sociability, Math.max(...Object.values(ecoAttributes) as number[]))}%`
-                    }}></div>
-                  </div>
-                  <span style={styles.attrValue}>{ecoAttributes.sociability}</span>
-                </div>
-
-                {/* 種族バッジ */}
-                <div style={styles.speciesBadge}>
-                  <span style={styles.speciesIcon}>🏷️</span>
-                  <span style={styles.speciesLabel}>Species:</span>
-                  <b style={styles.speciesName}>{species}</b>
-                </div>
-
-                <p style={styles.speciesDescription}>
-                  {getSpeciesDescription(species)}
-                </p>
-
-                {/* 内訳表示（デバッグ用） */}
-                <div style={styles.breakdownSection}>
-                  <p style={styles.breakdownTitle}>📊 Breakdown</p>
-                  <p style={styles.breakdownText}>
-                    Score: W={ecoAttributes.wealth} V={ecoAttributes.vitality} I={ecoAttributes.intelligence} C={ecoAttributes.creativity} S={ecoAttributes.sociability}
-                  </p>
-                  <p style={styles.breakdownText}>
-                    Total: {ecoAttributes.wealth + ecoAttributes.vitality + ecoAttributes.intelligence + ecoAttributes.creativity + ecoAttributes.sociability} pts
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-
-          <div style={styles.shareSection}>
-            <button onClick={handleShare} style={styles.shareButton}>
-              🔗 Share
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* トースト表示 */}
-      {copied && (
-        <div style={styles.toast}>
-          <span style={styles.toastIcon}>✅</span>
-          <span>Link copied!</span>
-        </div>
-      )}
-
-      {/* フッター（常に表示） */}
-      <div style={styles.footerContainer}>
-        <div style={styles.footer}>
+      {/* Footer */}
+      <footer style={styles.footer}>
+        <div style={styles.footerContent}>
           <span style={styles.footerText}>Made with </span>
           <span style={styles.footerHeart}>❤️</span>
           <span style={styles.footerText}> by </span>
@@ -515,282 +419,353 @@ function App() {
             <span style={styles.footerX}>𝕏</span>
           </a>
         </div>
-      </div>
+      </footer>
+
+      {/* Toast */}
+      {copied && (
+        <div style={styles.toast}>
+          <span>✅ Link copied!</span>
+        </div>
+      )}
     </div>
   );
 }
 
-// 🆙ちゃんカラー：明るくポップなデザイン
+// 🎨 Modern purple gradient theme
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
     minHeight: '100vh',
     width: '100%',
-    padding: '32px 16px',
-    fontFamily: 'inherit',
-    background: '#fce8ed',
-    color: '#333344',
-    overflowX: 'hidden',
+    padding: '24px 16px',
+    fontFamily: '"Quicksand", "Nunito", system-ui, sans-serif',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: '#1a202c',
     boxSizing: 'border-box',
   },
   header: {
     textAlign: 'center',
-    marginBottom: '40px',
+    marginBottom: '32px',
   },
-  titleWrapper: {
-    margin: '0 0 12px 0',
-    fontSize: 'clamp(2rem, 6vw, 3rem)',
+  title: {
+    margin: '0 0 8px 0',
+    fontSize: 'clamp(2rem, 5vw, 2.5rem)',
     fontWeight: '800',
-    letterSpacing: '-0.03em',
+    letterSpacing: '-0.02em',
     display: 'inline-block',
   },
-  emoji: {
+  titleEmoji: {
     fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif',
     fontVariantEmoji: 'emoji',
     margin: '0 10px',
   },
   titleText: {
-    background: 'linear-gradient(135deg, #ff6b9d 0%, #ff0055 50%, #ff6b9d 100%)',
+    background: 'linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     backgroundClip: 'text',
+    letterSpacing: '0.1em',
   },
   subtitle: {
     margin: 0,
-    fontSize: '1rem',
-    color: '#886677',
+    fontSize: '0.95rem',
+    color: 'rgba(255, 255, 255, 0.85)',
     fontWeight: '500',
   },
-  inputSection: {
-    maxWidth: '520px',
-    margin: '0 auto 20px',
-    padding: '24px 28px',
-    background: '#ffffff',
-    borderRadius: '20px',
-    boxShadow: '0 2px 12px rgba(249, 174, 199, 0.15)',
+  inputCard: {
+    maxWidth: '560px',
+    margin: '0 auto 24px',
+    padding: '24px',
+    background: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: '16px',
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
     width: '100%',
     boxSizing: 'border-box',
   },
   inputLabel: {
-    margin: '0 0 14px 0',
-    fontSize: '0.8rem',
-    color: '#886677',
-    textAlign: 'center',
-    fontWeight: '500',
+    display: 'block',
+    margin: '0 0 12px 0',
+    fontSize: '0.85rem',
+    fontWeight: '700',
+    color: '#4a5568',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
   },
   inputGroup: {
     display: 'flex',
     gap: '12px',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
   },
   input: {
-    flex: '1 1 200px',
-    minWidth: '200px',
-    padding: '12px 16px',
-    fontSize: '0.9rem',
-    fontFamily: '"Quicksand", "Nunito", monospace',
-    background: '#faf5f7',
-    border: 'none',
-    borderRadius: '12px',
-    color: '#333344',
+    flex: 1,
+    padding: '14px 16px',
+    fontSize: '0.95rem',
+    fontFamily: 'inherit',
+    background: '#f7fafc',
+    border: '2px solid #e2e8f0',
+    borderRadius: '10px',
+    color: '#2d3748',
     outline: 'none',
-    boxSizing: 'border-box',
+    transition: 'border-color 0.2s',
   },
   button: {
-    padding: '12px 24px',
-    fontSize: '0.9rem',
+    padding: '14px 28px',
+    fontSize: '0.95rem',
     fontWeight: '700',
-    background: 'linear-gradient(135deg, #f9aec7 0%, #f78fb3 100%)',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     border: 'none',
-    borderRadius: '12px',
+    borderRadius: '10px',
     color: '#ffffff',
     cursor: 'pointer',
-    transition: 'transform 0.2s, opacity 0.2s',
+    transition: 'transform 0.2s, box-shadow 0.2s',
     whiteSpace: 'nowrap',
-    flexShrink: 0,
   },
   loadingCard: {
-    maxWidth: '500px',
-    margin: '0 auto 20px',
-    padding: '32px 24px',
-    background: '#ffffff',
-    borderRadius: '20px',
-    boxShadow: '0 2px 12px rgba(249, 174, 199, 0.15)',
+    maxWidth: '400px',
+    margin: '0 auto 24px',
+    padding: '40px 24px',
+    background: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: '16px',
     textAlign: 'center',
   },
   loadingSpinner: {
-    fontSize: '3.5rem',
+    fontSize: '3rem',
     marginBottom: '16px',
-    animation: 'bounce 1s infinite',
   },
   loadingText: {
     margin: 0,
-    color: '#886677',
-    fontSize: '1.05rem',
+    color: '#4a5568',
+    fontSize: '1.1rem',
+    fontWeight: '600',
   },
   errorCard: {
     maxWidth: '500px',
-    margin: '0 auto 20px',
-    padding: '18px 24px',
-    background: '#fff5f8',
+    margin: '0 auto 24px',
+    padding: '20px 24px',
+    background: '#fff5f5',
     borderRadius: '16px',
-    boxShadow: '0 2px 12px rgba(249, 174, 199, 0.15)',
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
     flexWrap: 'wrap',
   },
   errorIcon: {
-    fontSize: '1.6rem',
+    fontSize: '1.5rem',
   },
   errorText: {
     margin: 0,
-    flex: '1 auto',
-    color: '#ff0055',
+    flex: '1 1 auto',
+    color: '#e53e3e',
     fontSize: '0.95rem',
-    minWidth: '200px',
   },
-  resultCard: {
-    maxWidth: '520px',
+  resultContainer: {
+    maxWidth: '560px',
     margin: '0 auto',
-    padding: '24px 28px',
-    background: '#ffffff',
-    borderRadius: '20px',
-    boxShadow: '0 2px 12px rgba(249, 174, 199, 0.15)',
-    width: '100%',
-    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
   },
-  profileHeader: {
+  profileCard: {
+    padding: '24px',
+    background: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: '16px',
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+  },
+  profileContent: {
     display: 'flex',
     alignItems: 'center',
-    gap: '14px',
-    marginBottom: '16px',
-    justifyContent: 'center',
-  },
-  birthdayDivider: {
-    height: '1px',
-    background: 'linear-gradient(90deg, transparent 0%, #f7b3c7 50%, transparent 100%)',
-    margin: '16px 0',
+    gap: '20px',
   },
   avatar: {
-    width: '56px',
-    height: '56px',
+    width: '72px',
+    height: '72px',
     borderRadius: '50%',
     objectFit: 'cover',
     flexShrink: 0,
   },
   avatarPlaceholder: {
-    width: '56px',
-    height: '56px',
+    width: '72px',
+    height: '72px',
     borderRadius: '50%',
-    background: 'linear-gradient(135deg, #f9aec7 0%, #f78fb3 100%)',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '1.5rem',
+    fontSize: '2rem',
     fontWeight: 'bold',
     color: '#ffffff',
     flexShrink: 0,
   },
-  profileInfo: {
+  profileText: {
     flex: 1,
     minWidth: 0,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   profileName: {
+    margin: '0 0 6px 0',
+    fontSize: '1.35rem',
+    fontWeight: '700',
+    color: '#2d3748',
+  },
+  profileAddress: {
+    margin: '0 0 10px 0',
+    fontSize: '0.85rem',
+    color: '#718096',
+    fontFamily: 'monospace',
+  },
+  ageInfo: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '10px',
+    alignItems: 'center',
+    fontSize: '0.85rem',
+  },
+  ageItem: {
+    display: 'flex',
+    gap: '6px',
+    alignItems: 'center',
+  },
+  ageLabel: {
+    color: '#718096',
+    fontWeight: '600',
+  },
+  ageValue: {
+    color: '#2d3748',
+    fontWeight: '600',
+  },
+  ageSeparator: {
+    color: '#cbd5e0',
+  },
+  ecoCard: {
+    padding: '24px',
+    background: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: '16px',
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+  },
+  cardTitle: {
+    margin: '0 0 20px 0',
     fontSize: '1.1rem',
     fontWeight: '700',
-    color: '#886677',
-    wordBreak: 'break-word',
-  },
-  birthdayHeader: {
-    textAlign: 'center',
-    marginBottom: '16px',
-  },
-  birthdayCake: {
-    fontSize: '1.3rem',
-  },
-  birthdaySubtitle: {
-    margin: 0,
-    fontSize: '1rem',
-    color: '#886677',
-    fontWeight: '600',
-  },
-  birthdayItem: {
-    padding: '14px 0',
-    borderBottom: '1px dashed #f7b3c7',
+    color: '#2d3748',
     textAlign: 'center',
   },
-  shareSection: {
-    textAlign: 'center',
-    marginTop: '20px',
-    paddingTop: '20px',
+  attributesGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
   },
-  shareButton: {
-    padding: '10px 20px',
-    fontSize: '0.85rem',
-    fontWeight: '600',
-    background: 'linear-gradient(135deg, #f9aec7 0%, #f78fb3 100%)',
-    border: 'none',
-    borderRadius: '12px',
-    color: '#ffffff',
-    cursor: 'pointer',
-    display: 'inline-flex',
+  attrItem: {
+    display: 'flex',
     alignItems: 'center',
-    gap: '6px',
-    transition: 'transform 0.2s, opacity 0.2s',
+    gap: '12px',
   },
-  toast: {
-    position: 'fixed',
-    bottom: '100px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    padding: '14px 28px',
-    background: '#ffffff',
-    border: '2px solid #f9aec7',
-    borderRadius: '16px',
-    fontSize: '0.9rem',
-    color: '#886677',
-    fontWeight: '600',
-    boxShadow: '0 4px 20px rgba(249, 174, 199, 0.3)',
+  attrHeader: {
+    width: '120px',
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    zIndex: 1000,
-    animation: 'fadeIn 0.2s ease-out',
+    flexShrink: 0,
   },
-  toastIcon: {
-    fontSize: '1.1rem',
+  attrIcon: {
+    fontSize: '1.2rem',
   },
-  birthdayLabel: {
-    display: 'block',
-    fontSize: '0.7rem',
-    color: '#886677',
-    marginBottom: '6px',
-    fontWeight: '600',
-  },
-  birthdayValue: {
-    display: 'block',
+  attrName: {
     fontSize: '0.9rem',
-    color: '#333344',
     fontWeight: '600',
-    wordBreak: 'break-word',
+    color: '#4a5568',
   },
-  txLink: {
-    display: 'block',
-    fontSize: '0.8rem',
-    color: '#f78fb3',
-    textDecoration: 'none',
-    fontFamily: '"Quicksand", "Nunito", monospace',
-    transition: 'color 0.2s',
-    fontWeight: '600',
+  attrBarContainer: {
+    flex: 1,
+    position: 'relative',
+    cursor: 'help',
   },
-  footerContainer: {
-    marginTop: '32px',
-    paddingTop: '20px',
-    borderTop: '1px dashed #f7b3c7',
+  attrBarBg: {
+    height: '14px',
+    background: '#e2e8f0',
+    borderRadius: '7px',
+    overflow: 'hidden',
+  },
+  attrBarFill: {
+    height: '100%',
+    borderRadius: '7px',
+    transition: 'width 0.5s ease-out',
+  },
+  barWealth: {
+    background: 'linear-gradient(90deg, #f6ad55 0%, #ed8936 100%)',
+  },
+  barVitality: {
+    background: 'linear-gradient(90deg, #fc8181 0%, #f56565 100%)',
+  },
+  barIntelligence: {
+    background: 'linear-gradient(90deg, #63b3ed 0%, #4299e1 100%)',
+  },
+  barCreativity: {
+    background: 'linear-gradient(90deg, #f687b3 0%, #ed64a6 100%)',
+  },
+  barSociability: {
+    background: 'linear-gradient(90deg, #68d391 0%, #48bb78 100%)',
+  },
+  attrValue: {
+    width: '36px',
+    textAlign: 'right',
+    fontWeight: '700',
+    color: '#2d3748',
+    fontSize: '0.95rem',
+    flexShrink: 0,
+  },
+  totalScore: {
+    marginTop: '20px',
+    paddingTop: '16px',
+    borderTop: '2px dashed #e2e8f0',
+    textAlign: 'center',
+    fontSize: '1rem',
+    color: '#4a5568',
+  },
+  speciesCard: {
+    padding: '24px',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    borderRadius: '16px',
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+    animation: 'pulse 2s ease-in-out infinite',
+  },
+  speciesBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+  },
+  speciesAnimal: {
+    fontSize: '3rem',
+    animation: 'bounce 1s ease-in-out infinite',
+  },
+  speciesName: {
+    margin: '0 0 4px 0',
+    fontSize: '1.5rem',
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: '0.05em',
+  },
+  speciesDesc: {
+    margin: 0,
+    fontSize: '0.9rem',
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: '1.5',
+  },
+  shareButton: {
+    padding: '16px 24px',
+    fontSize: '1rem',
+    fontWeight: '700',
+    background: 'rgba(255, 255, 255, 0.95)',
+    border: 'none',
+    borderRadius: '12px',
+    color: '#667eea',
+    cursor: 'pointer',
+    transition: 'transform 0.2s, box-shadow 0.2s',
   },
   footer: {
+    marginTop: '40px',
+    paddingTop: '24px',
+    borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+    textAlign: 'center',
+  },
+  footerContent: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -798,8 +773,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexWrap: 'wrap',
   },
   footerText: {
-    fontSize: '0.8rem',
-    color: '#886677',
+    fontSize: '0.85rem',
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   footerHeart: {
     fontSize: '0.85rem',
@@ -813,140 +788,43 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '4px',
-    color: '#f78fb3',
+    color: 'rgba(255, 255, 255, 0.85)',
     textDecoration: 'none',
-    fontSize: '0.8rem',
+    fontSize: '0.85rem',
     fontWeight: '600',
     transition: 'opacity 0.2s',
   },
   footerSeparator: {
-    color: '#ccb5c0',
-    fontSize: '0.8rem',
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: '0.85rem',
   },
   footerX: {
     fontSize: '0.85rem',
     fontFamily: 'inherit',
-    color: '#886677',
   },
-  // 生態セクションのスタイル
-  ecoSection: {
-    marginTop: '8px',
-    paddingTop: '8px',
-  },
-  ecoTitle: {
-    margin: '0 0 16px 0',
-    fontSize: '1.2rem',
-    fontWeight: '700',
-    color: '#886677',
-    textAlign: 'center',
-  },
-  attributeRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '10px 0',
-    fontSize: '0.85rem',
-  },
-  attrLabel: {
-    width: '100px',
-    fontWeight: '600',
-    color: '#886677',
-    flexShrink: 0,
-  },
-  barContainer: {
-    flex: 1,
-    height: '12px',
-    background: '#f5f5f5',
-    borderRadius: '6px',
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: '6px',
-    transition: 'width 0.5s ease-out',
-  },
-  barWealth: {
-    background: 'linear-gradient(90deg, #ffd700 0%, #ffb700 100%)',
-  },
-  barVitality: {
-    background: 'linear-gradient(90deg, #ff6b6b 0%, #ee5a5a 100%)',
-  },
-  barIntelligence: {
-    background: 'linear-gradient(90deg, #4ecdc4 0%, #3dbdb5 100%)',
-  },
-  barCreativity: {
-    background: 'linear-gradient(90deg, #ffe66d 0%, #ffd93d 100%)',
-  },
-  barSociability: {
-    background: 'linear-gradient(90deg, #95e1d3 0%, #7dd3c4 100%)',
-  },
-  attrValue: {
-    width: '30px',
-    textAlign: 'right',
-    fontWeight: '700',
-    color: '#333344',
-    flexShrink: 0,
-  },
-  speciesBadge: {
-    marginTop: '20px',
-    padding: '16px',
-    background: 'linear-gradient(135deg, #faf5f7 0%, #f5eef2 100%)',
+  toast: {
+    position: 'fixed',
+    bottom: '32px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    padding: '14px 28px',
+    background: '#ffffff',
     borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    fontSize: '1rem',
-  },
-  speciesIcon: {
-    fontSize: '1.2rem',
-  },
-  speciesLabel: {
-    color: '#886677',
+    fontSize: '0.95rem',
+    color: '#2d3748',
     fontWeight: '600',
-  },
-  speciesName: {
-    color: '#ff6b9d',
-    fontSize: '1.1rem',
-    marginLeft: '4px',
-  },
-  speciesDescription: {
-    marginTop: '12px',
-    padding: '12px',
-    background: '#fff5f8',
-    borderRadius: '8px',
-    fontSize: '0.85rem',
-    color: '#886677',
-    textAlign: 'center',
-    lineHeight: '1.5',
-  },
-  breakdownSection: {
-    marginTop: '16px',
-    padding: '12px',
-    background: '#f5f5f5',
-    borderRadius: '8px',
-    fontSize: '0.75rem',
-    color: '#666677',
-  },
-  breakdownTitle: {
-    margin: '0 0 8px 0',
-    fontWeight: '700',
-    fontSize: '0.8rem',
-  },
-  breakdownText: {
-    margin: '4px 0',
-    fontFamily: 'monospace',
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+    zIndex: 1000,
   },
   resetButton: {
-    padding: '8px 16px',
-    fontSize: '0.85rem',
+    padding: '10px 20px',
+    fontSize: '0.9rem',
     fontWeight: '600',
-    background: '#f78fb3',
+    background: '#f56565',
     border: 'none',
     borderRadius: '8px',
     color: '#ffffff',
     cursor: 'pointer',
-    transition: 'opacity 0.2s',
   },
 };
 
