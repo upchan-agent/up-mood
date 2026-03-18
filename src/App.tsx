@@ -223,7 +223,7 @@ function App() {
         from: tx.from.hash,
         to: tx.to?.hash || null,
         value: tx.value,
-        input: tx.input,
+        input: tx.raw_input,  // Blockscout API uses raw_input
         method: tx.method,
         block_number: tx.block_number,
       }));
@@ -232,9 +232,9 @@ function App() {
       
       const attrs = calculateEcoAttributes(transactions);
       console.log('[Eco] Attributes calculated:', attrs);
-      console.log('[Eco] Transaction breakdown:', transactions.map(tx => ({
+      console.log('[Eco] Sample inputs:', transactions.slice(0, 3).map(tx => ({
         method: tx.method,
-        type: tx.input ? (tx.input === '0x' ? 'transfer' : 'contract') : 'transfer'
+        inputLen: tx.input?.length || 0
       })));
       
       const sp = getSpecies(attrs);

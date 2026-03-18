@@ -8,7 +8,7 @@ export interface BlockscoutTransaction {
   from: { hash: string };
   to: { hash: string } | null;
   value: string;
-  input: string;
+  raw_input: string;  // Blockscout API uses raw_input
   method?: string;
   block_number: number;
 }
